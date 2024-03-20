@@ -1,0 +1,1 @@
+elections <- read.table("BushGore.dat", header = TRUE)

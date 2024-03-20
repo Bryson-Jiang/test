@@ -1,0 +1,136 @@
+---
+title: "AS Project"
+author: "Boshu Jiang"
+date: "2024-03-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+Have a look at the data set, and make two different linear model to check whether the observation for Palm Beach county impacts the results from the linear regression models.
+
+```{r elections}
+# Explore the data
+elections <- read.table("BushGore.dat", header = TRUE)
+head(elections)
+summary(elections)
+```
+```{r}
+# Perform Linear Regression using Perot's votes in 1996 to predict Buchanan's votes in 2000
+par(mfrow=c(2,2))
+model <- lm(Buchanan ~ Perot, data=elections)
+
+# Analyze Palm Beach County
+plot(model)  # This will give you several diagnostic plots
+```
+```{r}
+# Evaluate the Model
+summary(model)
+```
+
+```{r}
+# Create a model without Palm Beach County
+elections_without_palm <- subset(elections, County != "PalmBeach")
+model_without_palm <- lm(Buchanan ~ Perot, data=elections_without_palm)
+summary(model_without_palm)
+```
+The observation for Palm Beach County significantly impacts the results of the linear regression model. The exclusion of Palm Beach County results in a much lower residual standard error and a higher $R^2$ value, which means that the model without Palm Beach County provides a much better fit to the data. The change in the coefficient for Perot's votes also indicates that the Palm Beach observation was influencing the slope and the interception of the regression line. Additionally, the extremely high residual in the first model points to Palm Beach County being an outlier with a substantial effect on the model's predictions. Such outliers can have a large leverage effect, meaning they can significantly affect the slope and intercept of the regression line.
+
+In conclusion, the Palm Beach County observation is likely an outlier or a point with high leverage and greatly impacts the linear regression model. In practical terms, this means that including this observation may not give an accurate picture of the overall relationship between Perot's and Buchanan's votes across Florida counties. This may indicate that the voting in Palm Beach County were incorrect, so that it has a great impact to the linear model.
+
+## Question 2
+
+First, let's load the dataset:
+
+```{r teengamb, echo=FALSE, warning=FALSE}
+library(faraway)
+# Load the dataset
+data(teengamb)
+```
+## (a)
+```{r}
+# Original model
+model1 <- lm(gamble ~ sex + status + income + verbal, data=teengamb)
+
+# Model with square root transformation
+model2 <- lm(sqrt(gamble) ~ sex + status + income + verbal, data=teengamb)
+
+# Summary of both models
+summary(model1)
+summary(model2)
+```
+The second model is much better than the first one because the second model had lower residual standard error and higher $R^2$ value, which means that it better fit our data. From the p-value of each predictors, we can also find that the second model has lower p-value, which makes it more accurate.
+```{r}
+par(mfrow=c(2,2))
+plot(model2) 
+```
+From first and third plots, we find that the data may not have a constant variance, which violates the assumption of homoscedasticity. If the assumption of homoscedasticity is perfectly satisfied, the residual point in plot 1 should be randomly scattered and the red line in plot 3 should be flat. From the second plot, we find that the residuals might not be perfectly normal, particularly at the tails.
+
+## (b)
+```{r}
+# Coefficient for sex variable representing the difference between male and female
+sex_coe<-summary(model2)$coefficients["sex",]
+# Extract the estimated difference
+estimated_difference <- sex_coe["Estimate"]
+
+# Calculate 95% confidence interval for the difference
+confidence_interval <- confint(model2, "sex", level=0.95)
+
+# Output the estimated difference and confidence interval
+estimated_difference
+confidence_interval
+```
+The point estimate of the difference in the square root of gambling expenditure between males and females is $-2.044502$ and a 95% condidence level for this is $[-3.566467, -0.5225375]$.
+
+## (c)
+```{r}
+# Find the maximum values for socioeconomic status, income, and verbal score
+max_status <- max(teengamb$status, na.rm = TRUE)
+max_income <- max(teengamb$income, na.rm = TRUE)
+max_verbal <- max(teengamb$verbal, na.rm = TRUE)
+
+newdata <- data.frame(
+  sex=0,  
+  status=max_status,
+  income=max_income,
+  verbal=max_verbal
+)
+# Predict the amount with a 95% prediction interval on the square root scale
+prediction_sqrt_scale <- predict(model2, newdata, interval="prediction")
+prediction <- prediction_sqrt_scale^2
+prediction
+```
+The estimation is $75.65038$ with a 95% prediction interval $[13.80692, 187.1336]$
+
+## (d)
+We can use ANOVA test comparing the reduced model (with only income as a predictor) to the full model (with sex, status, income, and verbal score as predictors). This is our hypothesis:
+$H_0:\beta_{sex}=\beta_{status}=\beta_{verbal}=0$
+$H_a:\beta_{sex},\beta_{status},\beta_{verbal}\neq0$
+
+```{r}
+# Model without the income variable
+model3 <- lm(sqrt(gamble) ~ income, data=teengamb)
+
+# Use anova to compare the two models
+anova(model3, model2)
+```
+
+By doing ANOVA test and comparing the RSS for two models and checking the p-value, we find that the additional predictors (sex, status, and verbal) contribute significantly to the model and that the full model with these predictors provides a statistically significantly better fit to the data than the reduced model with income alone. Therefore, these variables do have a significant effect on the square root of the gambling expenditure when controlling for income.
+
+## (e)
+
+```{r}
+# model selection starting from the full model
+step_model <- step(model2, direction="both")
+summary(step_model)
+```
+By using the step function, we iteratively remove the least significant variables based on AIC from a model predicting the square root of gambling expenditure. Notice that when dropping sex variable, it increases AIC more significant than dropping status and verbal, suggesting that variable sex is a much more important and stable predictor than status and verbal. The p-value of our final selected model suggests our conclusion, since the p-value of sex predictor is 0.00968. It is statistically significant at the 1% level (using the common alpha level of 0.05). This suggests that sex has a significant effect on the square root of the gambling expenditure in the final model.
+
+## (f)
+The final selected model should have all the predictors including sex, status, income, and verbal. This model has the lowest AIC value among those models that are displayed, which is a measure used for model selection where lower values typically indicate a better-fitting model.The significance levels suggest that income and sex are particularly important factors, and income showing the strongest association.
+
+## Question 3
+## (a)
