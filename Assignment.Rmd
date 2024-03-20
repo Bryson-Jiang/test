@@ -134,3 +134,7 @@ The final selected model should have all the predictors including sex, status, i
 
 ## Question 3
 ## (a)
+```{r}
+
+```
+
